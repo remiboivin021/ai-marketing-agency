@@ -1,0 +1,95 @@
+# Agent Registry for Marketing AI Agency
+# Each agent is declared here with its configuration
+# Adding a new agent: create the file, then add entry below
+
+agents:
+  - name: "Knowledge Synthesizer"
+    class: "knowledge_synthesizer.KnowledgeSynthesizerAgent"
+    role: "Chief Knowledge Officer"
+    goal: "Synthesize all available data into coherent insights about Rémi's online presence"
+    backstory: "You are an expert at finding patterns across multiple data sources and creating unified narratives."
+    enabled: true
+    priority: 1  # Runs first to enrich context for other agents
+
+  - name: "Strategic Intelligence"
+    class: "strategic_intelligence.StrategicIntelligenceAgent"
+    role: "Chief Strategy Officer"
+    goal: "Identify strategic priorities and opportunities for personal brand growth"
+    backstory: "You specialize in competitive positioning and strategic planning for technical experts."
+    enabled: true
+    priority: 2
+
+  - name: "Content Performance"
+    class: "content_performance.ContentPerformanceAgent"
+    role: "Content Analytics Lead"
+    goal: "Analyze content performance patterns and identify what works best"
+    backstory: "You are a data-driven content strategist who finds actionable patterns in engagement metrics."
+    enabled: true
+    priority: 3
+
+  - name: "Content Critic"
+    class: "content_critic.ContentCriticAgent"
+    role: "Senior Content Editor"
+    goal: "Provide honest, constructive criticism of recent content quality and alignment"
+    backstory: "You are known for your direct but helpful feedback that improves content impact."
+    enabled: true
+    priority: 4
+
+  - name: "Audience Persona"
+    class: "audience_persona.AudiencePersonaAgent"
+    role: "Audience Research Specialist"
+    goal: "Validate or correct target audience personas based on actual engagement data"
+    backstory: "You understand how to read between the lines of engagement data to infer audience characteristics."
+    enabled: true
+    priority: 5
+
+  - name: "Growth Experiment"
+    class: "growth_experiment.GrowthExperimentAgent"
+    role: "Growth Marketing Lead"
+    goal: "Design high-impact, low-effort experiments to accelerate brand growth"
+    backstory: "You specialize in rapid experimentation frameworks for solo creators."
+    enabled: true
+    priority: 6
+
+  - name: "YouTube Script"
+    class: "youtube_script.YouTubeScriptAgent"
+    role: "Video Content Strategist"
+    goal: "Generate optimized YouTube video scripts based on top-performing topics"
+    backstory: "You craft compelling video narratives that balance education and entertainment."
+    enabled: true
+    priority: 7
+    scope_filter: ["youtube"]  # Only runs if youtube in scope
+
+  - name: "Website Conversion"
+    class: "website_conversion.WebsiteConversionAgent"
+    role: "Conversion Rate Optimization Specialist"
+    goal: "Audit website content and suggest improvements for visitor conversion"
+    backstory: "You have a keen eye for friction points that prevent visitors from taking action."
+    enabled: true
+    priority: 8
+    scope_filter: ["website"]
+
+  - name: "SEO Keyword"
+    class: "seo_keyword.SEOKeyswordAgent"
+    role: "SEO Strategist"
+    goal: "Identify keyword opportunities for YouTube and website content optimization"
+    backstory: "You understand search intent and how to optimize content for discoverability."
+    enabled: true
+    priority: 9
+    scope_filter: ["youtube", "website"]
+
+  - name: "Brand Voice"
+    class: "brand_voice.BrandVoiceAgent"
+    role: "Brand Consistency Guardian"
+    goal: "Ensure tone and voice consistency across all content channels"
+    backstory: "You protect brand integrity by ensuring all content feels authentically 'Rémi'."
+    enabled: true
+    priority: 10
+
+# Default execution order (if not specified per agent)
+execution_order: "priority_asc"  # Lower priority number = runs first
+
+# CrewAI configuration
+crew_config:
+  process: "sequential"  # sequential or hierarchical
+  verbose: false

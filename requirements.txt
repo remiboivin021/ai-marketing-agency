@@ -1,0 +1,41 @@
+# Core dependencies
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+pydantic-settings==2.7.0
+
+# Database
+sqlalchemy==2.0.36
+psycopg2-binary==2.9.10
+alembic==1.14.0
+
+# Vector database
+qdrant-client==1.12.1
+
+# AI / LLM
+crewai==0.86.0
+crewai-tools==0.14.0
+langchain-openai==0.2.14  # Compatible with OpenRouter via base_url
+
+# HTTP client
+httpx==0.28.1
+
+# Scraping / Ingestion
+beautifulsoup4==4.12.3
+requests==2.32.3
+youtube-transcript-api==0.6.3
+
+# Embeddings
+sentence-transformers==3.3.1
+
+# Testing
+pytest==8.3.4
+pytest-asyncio==0.24.0
+pytest-cov==6.0.0
+
+# Logging / Observability
+python-json-logger==2.0.7
+
+# Utilities
+python-dotenv==1.0.1
+aiofiles==24.1.0
