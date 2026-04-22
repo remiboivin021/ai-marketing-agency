@@ -20,11 +20,7 @@
 ## Feature Active
 
 ```
-Slug    : backend-integration
-Branche : feature/backend-api
-Worktree: ../wt-backend-api
-Tâche courante : Initialization - fixing blockers
-Démarrée le : 2026-04-22
+<!-- empty — feature merged -->
 ```
 
 ---
@@ -33,24 +29,21 @@ Démarrée le : 2026-04-22
 
 | Porte | Statut | Note |
 |-------|--------|------|
-| `$triage` | EN ATTENTE | New request - not classified yet |
-| `$planner` | EN ATTENTE | Waiting for triage |
-| `$preflight` | EN ATTENTE | Waiting for planner |
-| `$architect` | N/A | Not required |
-| `$security` | N/A | Not required |
-| `$adr` | N/A | Not required |
-| `$coder` | EN ATTENTE | Waiting for preflight |
-| `$qa` | EN ATTENTE | Waiting for coder |
-| `$review` | EN ATTENTE | Waiting for QA |
-| `$doc` | EN ATTENTE | Will be required after coder |
-| `$release` | EN ATTENTE | Waiting for review |
+| `$triage` | DONE | ROUTED - L3 structural change |
+| `$planner` | DONE | STATE.backend-api.md created |
+| `$preflight` | DONE | PASS |
+| `$coder` | DONE | 5 commits merged to main |
+| `$qa` | DONE | PASS |
+| `$review` | DONE | APPROVED |
+| `$doc` | DONE | UPDATED |
+| `$release` | DONE | MERGE_READY — merged to main |
 
 ---
 
 ## Blockers Actifs
 
 ```
-<!-- No blockers currently -->
+<!-- none -->
 ```
 
 ---
@@ -58,8 +51,10 @@ Démarrée le : 2026-04-22
 ## Gotchas du Dépôt
 
 ```
-- Backend non implémenté - données mockées dans le frontend uniquement
-- Stackbackend à implémenter : Node/Express avec persistance JSON
+- Backend: server/ Express sur port 3001, npm run dev:server
+- Dev concurrent: npm run dev:all
+- Frontend accède via proxy Vite /api/* → localhost:3001
+- 3 endpoints REST: GET /api/gateway, /api/agents, /api/projects
 ```
 
 ---
@@ -67,8 +62,8 @@ Démarrée le : 2026-04-22
 ## Nettoyage
 
 Ce fichier doit être **vidé ou archivé** quand :
-- La feature est mergée → supprimer ou archiver
-- Un nouveau slug de feature démarre → réinitialiser les sections Feature Active et Statut des Portes
-- Un gotcha est corrigé dans le dépôt → supprimer l'entrée GOTCHA
+- Toutes les features sont mergées → réinitialiser Feature Active
+- Un gotcha est corrigé → supprimer l'entrée GOTCHA
 
 **Ce fichier ne doit jamais devenir un historique.**
+**Dernière mise à jour: 2026-04-22 — backend-api merged to main**
