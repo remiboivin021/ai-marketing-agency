@@ -236,11 +236,7 @@ Keep the index current.
 
 ## ADR List
 
-Update this list whenever a new ADR is added.
-
-- 26-03-06_example-title.md - `<title>`
-- 26-03-07_example-title.md - `<title>`
-- 26-03-08_example-title.md - `<title>`
+- 26-04-22_openrouter-llm-connector.md — OpenRouter LLM Connector for agentic task execution (Proposed)
 
 ---
 
