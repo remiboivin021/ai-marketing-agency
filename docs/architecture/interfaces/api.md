@@ -1,51 +1,79 @@
 # API Interface
 
-This document describes an API interface the system consumes or exposes, with emphasis on stability and ownership.
+This document describes the backend REST API exposed by the Express server for the cockpit dashboard frontend.
 
 ## Overview
 
-- **Type**: `<input | output | bidirectional>`
-- **Protocol**: `<HTTP | gRPC | WebSocket | etc.>`
-- **Base URL**: `<url or path>`
-- **Owner**: `<team or role>`
+- **Type**: `bidirectional` (frontend consumes backend)
+- **Protocol**: `HTTP REST`
+- **Base URL**: `http://localhost:3001`
+- **Owner**: `backend-api feature`
 
 ## Endpoints
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `<GET/POST/etc.>` | `<path>` | `<description>` |
+| `GET` | `/api/gateway` | Gateway health signals |
+| `GET` | `/api/agents` | Agent projects with sub-agents |
+| `GET` | `/api/projects` | Projects list |
+| `GET` | `/health` | Server health check |
 
-## Request format
+## GET /api/gateway
 
+Returns gateway health and golden signals.
+
+**Response:**
 ```json
-{
-  "<field>": "<type> - <description>"
-}
+[
+  { "label": "string", "value": "string", "color": "string", "isStatus": "boolean" }
+]
 ```
 
-## Response format
-
+Example:
 ```json
-{
-  "<field>": "<type> - <description>"
-}
+[
+  { "label": "Gateway", "value": "Connected", "color": "#10b981", "isStatus": true },
+  { "label": "Traffic (sessions)", "value": "87", "color": "#10b981" }
+]
 ```
+
+## GET /api/agents
+
+Returns agent projects with sub-agent telemetry data.
+
+**Response:**
+```json
+[
+  {
+    "id": "string",
+    "name": "string",
+    "x": "number",
+    "y": "number",
+    "description": "string",
+    "metrics": { "uptime": "string", "latency": "string" },
+    "subAgents": [{ "id": "string", "status": "string", "type": "string" }]
+  }
+]
+```
+
+## GET /api/projects
+
+Returns projects list (same data as /api/agents in MVP).
+
+**Response:** identical to `/api/agents`.
 
 ## Contract notes
 
-Document versioning expectations, validation rules, and migration paths for any stable interface.
+- All endpoints return `Content-Type: application/json`
+- No authentication in MVP
+- No query parameters in MVP
+- Data is served from `server/data/*.js` mock files
+- Frontend accesses via Vite proxy at `/api/*` → `http://localhost:3001`
 
-## Error handling
+## Development
 
-| Code | Meaning | Recovery |
-|------|---------|----------|
-| `<4xx>` | `<client error>` | `<action>` |
-| `<5xx>` | `<server error>` | `<action>` |
-
-## Rate limiting
-
-- Limit: `<N> requests per <time period>`
-- Headers: `<X-RateLimit-*>` or similar
+- Server starts on port 3001: `npm run dev:server`
+- Both processes: `npm run dev:all` (concurrently)
 
 ---
 Maintainer/Author: <MAINTAINER_AUTHOR>

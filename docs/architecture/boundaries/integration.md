@@ -1,16 +1,14 @@
-# Integration Boundary — <SystemName>
+# Integration Boundary — cockpit-dashboard
 
-> Boundary Type: Integration | Audience: developers, architects, consumers
+> Boundary Type: Frontend ↔ Backend | Audience: developers
 
-## Purpose
-<!-- Définit les contrats exposés vers l'extérieur et les dépendances consommées.
-     Répond à : "qu'est-ce que ce système promet, et à quoi dépend-il ?" -->
+## Exposed Contracts (Producer — Backend API)
 
-## Exposed Contracts (Producer)
 | Endpoint / Topic | Protocol | Auth | Stability | Consumer |
 |-----------------|----------|------|-----------|---------|
-| `POST /api/v1/<resource>` | REST | JWT | stable / beta / internal | <consumer> |
-| `<topic.name>` | AMQP / Kafka | mTLS | ... | |
+| `GET /api/gateway` | REST | none | internal | React frontend |
+| `GET /api/agents` | REST | none | internal | React frontend |
+| `GET /api/projects` | REST | none | internal | React frontend |
 
 ## Consumed Contracts (Consumer)
 | Endpoint / Topic | Provider | Protocol | Failure Mode | Notes |

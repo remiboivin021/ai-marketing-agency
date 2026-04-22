@@ -53,22 +53,27 @@ const SubAgentTelemetry = ({ subAgent, theme }) => (
 );
 
 // --- COMPOSANT PRINCIPAL ---
-const AgentNetworkGraph = () => {
+function AgentNetworkGraph() {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 500 });
-  const [hoveredCore, setHoveredCore] = useState(null);
+  const [_hoveredCore, setHoveredCore] = useState(null);
   const [selectedProject, setSelectedProject] = useState(null);
   const [selectedSubAgentId, setSelectedSubAgentId] = useState(null);
   const [filterStatus, setFilterStatus] = useState(['done', 'working', 'alert']);
+  const [projects, setProjects] = useState([]);
 
   const THEME = { done: '#10b981', working: '#f59e0b', alert: '#ef4444', idle: '#475569' };
 
-  const projects = [
-    { id: 'p1', name: 'Jarvis Main', x: 0.3, y: 0.4, description: "Cœur de l'IA. Gère l'ordonnancement.", metrics: { uptime: '99%', latency: '12ms' }, subAgents: [{ id: 's1', status: 'done', type: 'PARSER' }, { id: 's2', status: 'done', type: 'INDEXER' }] },
-    { id: 'p2', name: 'Auto-GPT Ops', x: 0.7, y: 0.3, description: "Pipeline d'exécution autonome.", metrics: { uptime: '92%', latency: '240ms' }, subAgents: [{ id: 's4', status: 'working', type: 'DEPLOY' }, { id: 's5', status: 'alert', type: 'SECURE' }] },
-    { id: 'p3', name: 'Data Scraper', x: 0.5, y: 0.7, description: "Extraction de données temps réel.", metrics: { uptime: '98%', latency: '45ms' }, subAgents: [{ id: 's7', status: 'working', type: 'SCANNER' }] }
-  ];
+  useEffect(() => {
+    fetch('/api/agents')
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((data) => setProjects(data))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const updateSize = () => {
