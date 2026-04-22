@@ -1,0 +1,181 @@
+import React, { useRef, useEffect, useState } from 'react';
+import { X, Activity, Database, Shield, Zap, Terminal, ChevronDown, ChevronRight } from 'lucide-react';
+
+// --- SOUS-COMPOSANT : TIMELINE D'ACTIVITÉ ---
+const ActivityTimeline = () => {
+  const points = Array.from({ length: 20 }, (_, i) => ({ x: i * 5, y: 10 + Math.random() * 20 }));
+  const pathData = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+
+  return (
+    <div className="mt-2 h-10 w-full bg-black/40 rounded border border-white/5 relative overflow-hidden">
+      <svg className="w-full h-full">
+        <path d={pathData} fill="none" stroke="#06b6d4" strokeWidth="1" strokeOpacity="0.5" />
+        <path d={`${pathData} L 100 40 L 0 40 Z`} fill="url(#grad)" opacity="0.1" />
+        <defs><linearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stopColor="#06b6d4" /><stop offset="100%" stopColor="transparent" /></linearGradient></defs>
+      </svg>
+      <span className="absolute top-1 left-1 text-[7px] text-slate-500 uppercase tracking-widest">Live Activity Timeline</span>
+    </div>
+  );
+};
+
+// --- SOUS-COMPOSANT : TÉLÉMÉTRIE SUB-AGENT ---
+const SubAgentTelemetry = ({ subAgent, theme }) => (
+  <div className="bg-[#05070a] border border-cyan-900/30 rounded-lg p-4 font-mono text-[10px] space-y-4 mt-2 animate-in slide-in-from-top duration-300">
+    <div className="grid grid-cols-2 gap-2">
+      <div className="bg-white/2 p-2 rounded border border-white/5">
+        <div className="text-slate-500 mb-1 flex items-center gap-1"><Zap size={10}/> MEMORY</div>
+        <div className="text-cyan-400">{(Math.random() * 128 + 64).toFixed(1)} MB</div>
+      </div>
+      <div className="bg-white/2 p-2 rounded border border-white/5">
+        <div className="text-slate-500 mb-1 flex items-center gap-1"><Activity size={10}/> TOKENS</div>
+        <div className="text-amber-500">~{Math.floor(Math.random() * 500 + 200)} tpm</div>
+      </div>
+    </div>
+
+    <ActivityTimeline />
+
+    <div className="space-y-1">
+      <div className="flex justify-between text-[8px] text-slate-500 uppercase">
+        <span>Internal Throughput</span>
+        <span className="text-cyan-500">{(Math.random() * 5 + 1).toFixed(2)} GB/s</span>
+      </div>
+      <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+        <div className="h-full bg-cyan-500 animate-pulse" style={{ width: '65%' }}></div>
+      </div>
+    </div>
+
+    <div className="pt-2 border-t border-white/5 grid grid-cols-2 gap-2">
+      <button className="py-1.5 bg-rose-950/20 border border-rose-900/40 text-rose-500 rounded text-[9px] hover:bg-rose-900/40 transition-colors">TERMINATE</button>
+      <button className="py-1.5 bg-cyan-950/20 border border-cyan-900/40 text-cyan-400 rounded text-[9px] hover:bg-cyan-900/40">DUMP_MEM</button>
+      <button className="col-span-2 py-1.5 bg-white/5 border border-white/10 text-slate-400 rounded text-[9px] hover:bg-white/10">ISOLATE_CORE_PROTOCOL</button>
+    </div>
+  </div>
+);
+
+// --- COMPOSANT PRINCIPAL ---
+const AgentNetworkGraph = () => {
+  const canvasRef = useRef(null);
+  const containerRef = useRef(null);
+  const [dimensions, setDimensions] = useState({ width: 800, height: 500 });
+  const [hoveredCore, setHoveredCore] = useState(null);
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [selectedSubAgentId, setSelectedSubAgentId] = useState(null);
+  const [filterStatus, setFilterStatus] = useState(['done', 'working', 'alert']);
+
+  const THEME = { done: '#10b981', working: '#f59e0b', alert: '#ef4444', idle: '#475569' };
+
+  const projects = [
+    { id: 'p1', name: 'Jarvis Main', x: 0.3, y: 0.4, description: "Cœur de l'IA. Gère l'ordonnancement.", metrics: { uptime: '99%', latency: '12ms' }, subAgents: [{ id: 's1', status: 'done', type: 'PARSER' }, { id: 's2', status: 'done', type: 'INDEXER' }] },
+    { id: 'p2', name: 'Auto-GPT Ops', x: 0.7, y: 0.3, description: "Pipeline d'exécution autonome.", metrics: { uptime: '92%', latency: '240ms' }, subAgents: [{ id: 's4', status: 'working', type: 'DEPLOY' }, { id: 's5', status: 'alert', type: 'SECURE' }] },
+    { id: 'p3', name: 'Data Scraper', x: 0.5, y: 0.7, description: "Extraction de données temps réel.", metrics: { uptime: '98%', latency: '45ms' }, subAgents: [{ id: 's7', status: 'working', type: 'SCANNER' }] }
+  ];
+
+  useEffect(() => {
+    const updateSize = () => {
+      if (containerRef.current) {
+        const { clientWidth, clientHeight } = containerRef.current;
+        if (clientWidth > 0) setDimensions({ width: clientWidth, height: clientHeight });
+      }
+    };
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const { width, height } = dimensions;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = width * dpr; canvas.height = height * dpr;
+    ctx.scale(dpr, dpr);
+
+    let animationFrame;
+    const draw = () => {
+      ctx.clearRect(0, 0, width, height);
+      const time = Date.now() * 0.002;
+      projects.forEach(p => {
+        const px = p.x * width, py = p.y * height;
+        const isSel = selectedProject?.id === p.id;
+        const color = THEME[p.subAgents.some(s => s.status === 'alert') ? 'alert' : p.subAgents.some(s => s.status === 'working') ? 'working' : 'done'];
+        
+        ctx.save();
+        ctx.globalAlpha = (selectedProject) && !isSel ? 0.2 : 1;
+        
+        // Dessin des connections sub-agents
+        if (isSel) {
+          p.subAgents.forEach((s, i) => {
+            const angle = (i / p.subAgents.length) * Math.PI * 2 + (time * 0.1);
+            const sx = px + Math.cos(angle) * 80, sy = py + Math.sin(angle) * 80;
+            ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(sx, sy);
+            ctx.strokeStyle = `${THEME[s.status]}44`; ctx.setLineDash([2, 2]); ctx.stroke();
+            ctx.beginPath(); ctx.arc(sx, sy, 3, 0, Math.PI * 2); ctx.fillStyle = THEME[s.status]; ctx.fill();
+          });
+        }
+
+        // Dessin du Core
+        ctx.beginPath(); ctx.arc(px, py, isSel ? 12 : 8, 0, Math.PI * 2);
+        ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+        ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI * 2); ctx.fillStyle = isSel ? '#fff' : color; ctx.fill();
+        ctx.font = '10px monospace'; ctx.fillStyle = '#64748b'; ctx.textAlign = 'center';
+        ctx.fillText(p.name.toUpperCase(), px, py + 35);
+        ctx.restore();
+      });
+      animationFrame = requestAnimationFrame(draw);
+    };
+    draw(); return () => cancelAnimationFrame(animationFrame);
+  }, [dimensions, selectedProject]);
+
+  return (
+    <div ref={containerRef} className="w-full h-full flex bg-[#020617] overflow-hidden">
+      <div className="flex-1 relative">
+        <canvas ref={canvasRef} onClick={(e) => {
+          const rect = canvasRef.current.getBoundingClientRect();
+          const x = e.clientX - rect.left, y = e.clientY - rect.top;
+          const found = projects.find(p => Math.sqrt((x - p.x * dimensions.width)**2 + (y - p.y * dimensions.height)**2) < 30);
+          setSelectedProject(found || null);
+        }} className="w-full h-full cursor-crosshair" />
+      </div>
+
+      {selectedProject && (
+        <div className="w-96 bg-[#0b0f1a] border-l border-white/10 p-6 overflow-y-auto animate-in slide-in-from-right">
+          <div className="flex justify-between items-start mb-6">
+            <h2 className="text-white font-bold text-lg uppercase tracking-tighter">{selectedProject.name}</h2>
+            <X className="text-slate-500 cursor-pointer" onClick={() => setSelectedProject(null)} />
+          </div>
+
+          <div className="space-y-6">
+            <div className="flex justify-between items-center border-b border-white/5 pb-2">
+              <span className="text-[10px] text-slate-500 uppercase font-mono">Unit Filters</span>
+              <div className="flex gap-1">
+                {['done', 'working', 'alert'].map(s => (
+                  <button key={s} onClick={() => setFilterStatus(prev => prev.includes(s) ? prev.filter(i => i !== s) : [...prev, s])}
+                    className="w-4 h-4 rounded-sm border" style={{ borderColor: filterStatus.includes(s) ? THEME[s] : '#334155', backgroundColor: filterStatus.includes(s) ? `${THEME[s]}33` : 'transparent' }}>
+                    <div className="w-1.5 h-1.5 mx-auto rounded-full" style={{ backgroundColor: THEME[s] }}></div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {selectedProject.subAgents.filter(s => filterStatus.includes(s.status)).map(sub => (
+              <div key={sub.id}>
+                <button onClick={() => setSelectedSubAgentId(selectedSubAgentId === sub.id ? null : sub.id)}
+                  className={`w-full flex justify-between p-3 rounded border font-mono text-[11px] ${selectedSubAgentId === sub.id ? 'bg-black border-cyan-800' : 'bg-black/40 border-white/5'}`}>
+                  <div className="flex items-center gap-2">
+                    {selectedSubAgentId === sub.id ? <ChevronDown size={14} className="text-cyan-500"/> : <ChevronRight size={14}/>}
+                    <span className={selectedSubAgentId === sub.id ? 'text-cyan-300' : 'text-slate-300'}>{sub.id}</span>
+                  </div>
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: THEME[sub.status], boxShadow: `0 0 8px ${THEME[sub.status]}` }}></div>
+                </button>
+                {selectedSubAgentId === sub.id && <SubAgentTelemetry subAgent={sub} theme={THEME} />}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AgentNetworkGraph;
