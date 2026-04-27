@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { X, Activity, Database, Shield, Zap, Terminal, ChevronDown, ChevronRight } from 'lucide-react';
+import AgentInteraction from './AgentInteraction';
 
 // --- TIMELINE ---
 function ActivityTimeline() {
@@ -86,6 +87,7 @@ function AgentNetworkGraph() {
   const [dimensions, setDimensions] = useState({ width: 800, height: 500 });
   const [selectedProject, setSelectedProject] = useState(null);
   const [selectedSubAgentId, setSelectedSubAgentId] = useState(null);
+  const [showInteraction, setShowInteraction] = useState(false);
   const [filterStatus, setFilterStatus] = useState(['done', 'working', 'alert']);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -220,8 +222,18 @@ function AgentNetworkGraph() {
                 {selectedSubAgentId === sub.id && <SubAgentTelemetry subAgent={sub} theme={THEME} />}
               </div>
             ))}
+
+            {/* Boton d'interaction avec l'agent */}
+            <button onClick={() => setShowInteraction(true)}
+              className="w-full mt-4 py-3 bg-cyan-950/40 border border-cyan-800 text-cyan-400 rounded-lg text-[10px] uppercase tracking-widest hover:bg-cyan-900/40 transition-colors">
+              Interagir avec l'agent
+            </button>
           </div>
         </div>
+      )}
+
+      {showInteraction && selectedProject && (
+        <AgentInteraction agent={selectedProject} onClose={() => setShowInteraction(false)} />
       )}
     </div>
   );
