@@ -6,6 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { gatewaySignals } from './data/gateway.js';
 import { readProjects, spawnProject } from './data/agents.js';
+import { callLLM, sanitizeTask } from './llm/openrouter.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -140,7 +141,7 @@ app.get('/api/projects', (_req, res) => {
 });
 
 // Send message to an agent and get response
-app.post('/api/agents/:id/message', (req, res) => {
+app.post('/api/agents/:id/message', async (req, res) => {
   const { id } = req.params;
   const { message } = req.body;
   
@@ -148,17 +149,50 @@ app.post('/api/agents/:id/message', (req, res) => {
     return res.status(400).json({ error: 'Message required' });
   }
   
-  // TODO: Integrate with LLM agent when feature/agentic-llm is merged
-  // For now, return a placeholder response
-  const response = {
-    id: `resp_${Date.now()}`,
-    projectId: id,
-    message: message,
-    response: `[Agent ${id}] Received: ${message}. (LLM integration pending)`,
-    timestamp: new Date().toISOString()
-  };
-  
-  res.json(response);
+  try {
+    // Get agent config from JSON file if exists
+    let systemPrompt = `Tu es un agent IA名为 ${id}. Tu répond de manière utile et concise.`;
+    
+    // Try to load agent from JSON
+    const agentsDir = path.join(__dirname, 'data', 'agents');
+    if (fs.existsSync(agentsDir)) {
+      const agentFiles = fs.readdirSync(agentsDir).filter(f => f.endsWith('.json'));
+      for (const file of agentFiles) {
+        try {
+          const agentData = JSON.parse(fs.readFileSync(path.join(agentsDir, file), 'utf-8'));
+          if (agentData.id === id) {
+            systemPrompt = agentData.prompt || systemPrompt;
+            break;
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+    }
+    
+    // Call LLM
+    const llmResult = await callLLM({
+      systemPrompt,
+      userTask: sanitizeTask(message),
+      agentId: id,
+      skill: 'agent_message'
+    });
+    
+    const responseText = llmResult.error || llmResult.result || ' Désolé, une erreur est survenue.';
+    
+    const response = {
+      id: `resp_${Date.now()}`,
+      projectId: id,
+      message: message,
+      response: responseText,
+      timestamp: new Date().toISOString()
+    };
+    
+    res.json(response);
+  } catch (err) {
+    console.error('[Message] Error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.post('/api/agents', rateLimitMiddleware, validateSpawnRequest, async (req, res) => {

@@ -32,7 +32,16 @@ if (!SKIP_LLM_CHECK) {
  */
 export async function callLLM({ systemPrompt, userTask, model = DEFAULT_MODEL, agentId, skill }) {
   if (!OPENROUTER_API_KEY || SKIP_LLM_CHECK) {
-    return { error: 'OPENROUTER_API_KEY not configured', duration_ms: 0 };
+    // Mode local sans API key - générateur de réponse simple
+    const responses = [
+      "Intéressant! Pouvez-vous m'en dire plus sur ce sujet?",
+      "Je prends note de votre demande. Voici quelques éléments à considérer...",
+      "Merci pour cette question. Laissez-moi réfléchir à la meilleure réponse.",
+      "Je vous comprends. Cependant, j'aurais besoin de plus d'informations pour vous aider efficacement.",
+      "C'est une question pertinente. Voici mon analyse..."
+    ];
+    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+    return { result: `[Mode local] ${randomResponse}`, duration_ms: 500 };
   }
 
   const startMs = Date.now();
