@@ -109,10 +109,14 @@ function AgentInteraction({ agent, onClose }) {
           )}
           {loading && (
             <div className="flex justify-start">
-              <div className="bg-white/5 border border-white/10 p-3 rounded-lg">
+              <div className="bg-white/5 border border-white/10 px-4 py-3 rounded-lg">
                 <div className="flex items-center gap-2">
-                  <Bot size={12} />
-                  <span className="text-[9px] text-slate-500 uppercase animate-pulse">Thinking...</span>
+                  <Bot size={12} className="text-slate-400" />
+                  <div className="flex gap-1">
+                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
                 </div>
               </div>
             </div>

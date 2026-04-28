@@ -14,8 +14,6 @@ const __dirname = path.dirname(__filename);
 const PORT = 3001;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 5;
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX = 5;
 
 // --- In-memory rate limit store (resets on restart) ---
 const rateLimitStore = new Map();

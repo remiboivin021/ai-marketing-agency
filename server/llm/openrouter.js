@@ -7,17 +7,17 @@ const BASE_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const DEFAULT_MODEL = 'anthropic/claude-3.5-sonnet';
 const TIMEOUT_MS = 60_000;
 
-// --- Startup validation (fail-fast) ---
-if (!OPENROUTER_API_KEY) {
-  // eslint-disable-next-line no-console
-  console.error(JSON.stringify({ level: 'FATAL', ts: new Date().toISOString(), event: 'llm.startup.failed', error: 'OPENROUTER_API_KEY missing' }));
-  process.exit(1);
-}
+// --- Startup validation (fail-fast except in dev without key) ---
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const SKIP_LLM_CHECK = NODE_ENV === 'development' && !OPENROUTER_API_KEY;
 
-if (!OPENROUTER_API_KEY.startsWith('sk-')) {
-  // eslint-disable-next-line no-console
-  console.error(JSON.stringify({ level: 'FATAL', ts: new Date().toISOString(), event: 'llm.startup.failed', error: 'OPENROUTER_API_KEY must start with sk-' }));
-  process.exit(1);
+if (!SKIP_LLM_CHECK) {
+  if (!OPENROUTER_API_KEY) {
+    console.error(JSON.stringify({ level: 'WARN', ts: new Date().toISOString(), event: 'llm.startup.no_key', message: 'OPENROUTER_API_KEY not set — LLM will not be available' }));
+  } else if (!OPENROUTER_API_KEY.startsWith('sk-')) {
+    console.error(JSON.stringify({ level: 'FATAL', ts: new Date().toISOString(), event: 'llm.startup.failed', error: 'OPENROUTER_API_KEY must start with sk-' }));
+    process.exit(1);
+  }
 }
 
 /**
@@ -31,6 +31,10 @@ if (!OPENROUTER_API_KEY.startsWith('sk-')) {
  * @returns {Promise<{result: string}>}
  */
 export async function callLLM({ systemPrompt, userTask, model = DEFAULT_MODEL, agentId, skill }) {
+  if (!OPENROUTER_API_KEY || SKIP_LLM_CHECK) {
+    return { error: 'OPENROUTER_API_KEY not configured', duration_ms: 0 };
+  }
+
   const startMs = Date.now();
   // eslint-disable-next-line no-console
   console.error(JSON.stringify({ level: 'INFO', ts: new Date().toISOString(), event: 'llm.call.started', agentId, skill, model }));
