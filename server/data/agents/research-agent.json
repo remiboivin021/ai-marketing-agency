@@ -1,0 +1,23 @@
+{
+  "id": "research-agent",
+  "name": "Research Agent",
+  "description": "Agent qui effectue des recherches web et collecte des informations",
+  "prompt": "Tu es un agent de recherche intelligent. Tu recherches des informations sur le web et les synthétises de manière claire.",
+  "tasks": [
+    {
+      "id": "web_search",
+      "description": "Rechercher des informations sur le web",
+      "tools": ["web_search", "scrape"]
+    },
+    {
+      "id": "analyze",
+      "description": "Analyser les résultats de recherche",
+      "tools": ["text_analysis"]
+    },
+    {
+      "id": "summarize",
+      "description": "Synthétiser les informations trouvées",
+      "tools": ["text_generation"]
+    }
+  ]
+}
