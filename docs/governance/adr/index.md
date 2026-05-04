@@ -237,6 +237,8 @@ Keep the index current.
 ## ADR List
 
 - 26-04-22_openrouter-llm-connector.md — OpenRouter LLM Connector for agentic task execution (Proposed)
+- 26-05-04_task-queue-redis-bull.md — Task Queue System with Redis/Bull (Proposed)
+- 26-05-04_agent-orchestration-model.md — Agent Orchestration Model with DAG (Proposed)
 
 ---
 
