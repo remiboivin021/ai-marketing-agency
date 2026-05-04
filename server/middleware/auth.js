@@ -1,20 +1,18 @@
-const btoa = require('btoa');
-
 /**
  * Basic Authentication middleware for Express
  * Protects all /api/* endpoints with Basic Auth
  * Credentials are read from .env (ADMIN_USER, ADMIN_PASSWORD)
  */
 
-// Load credentials from environment
-const ADMIN_USER = process.env.ADMIN_USER || '';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
-
 /**
  * Basic Auth middleware
  * Returns 401 with WWW-Authenticate header if auth fails
  */
 function basicAuth(req, res, next) {
+  // Load credentials from environment (dynamic read)
+  const ADMIN_USER = process.env.ADMIN_USER || '';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
+  
   // If credentials are not configured, disable auth (development mode)
   if (!ADMIN_USER || !ADMIN_PASSWORD) {
     console.warn('[auth] ADMIN_USER or ADMIN_PASSWORD not set - auth disabled');
@@ -30,7 +28,7 @@ function basicAuth(req, res, next) {
 
   // Decode and verify credentials
   const base64Credentials = authHeader.split(' ')[1];
-  const credentials = btoa.decode(base64Credentials).toString();
+  const credentials = Buffer.from(base64Credentials, 'base64').toString();
   const [username, password] = credentials.split(':');
 
   if (username === ADMIN_USER && password === ADMIN_PASSWORD) {
