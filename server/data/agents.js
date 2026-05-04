@@ -131,9 +131,6 @@ export async function spawnProject(data) {
   return newProject;
 }
 
-  return newProject;
-}
-
 /**
  * Execute the skill pipeline using Bull queue (if available) or fallback sync.
  * Adds sub-agent tasks to queue with proper dependency handling.
