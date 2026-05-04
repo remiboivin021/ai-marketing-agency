@@ -7,6 +7,8 @@ import { fileURLToPath } from 'url';
 import { gatewaySignals } from './data/gateway.js';
 import { readProjects, spawnProject } from './data/agents.js';
 import { callLLM, sanitizeTask } from './llm/openrouter.js';
+import { getQueueStats, isRedisConnected } from './queue/index.js';
+import { topologicalSort, detectCycle } from './queue/dag.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -42,7 +44,7 @@ function rateLimitMiddleware(req, res, next) {
 
 // --- Middleware: input validation for POST /api/agents ---
 function validateSpawnRequest(req, res, next) {
-  const { name, task } = req.body || {};
+  const { name, task, dependsOn } = req.body || {};
   const errors = [];
 
   if (!name || typeof name !== 'string') {
@@ -60,6 +62,37 @@ function validateSpawnRequest(req, res, next) {
       // eslint-disable-next-line no-console
       console.error(JSON.stringify({ level: 'WARN', ts: new Date().toISOString(), event: 'validation.failed', field: 'task', error: 'exceeds max length' }));
       return res.status(400).json({ error: 'task exceeds max length (4000 chars)' });
+    }
+  }
+
+  // Validate dependsOn (must be array of strings if provided)
+  if (dependsOn !== undefined) {
+    if (!Array.isArray(dependsOn)) {
+      errors.push('dependsOn must be an array');
+    } else {
+      // Check all entries are strings
+      const invalidEntries = dependsOn.filter(d => typeof d !== 'string');
+      if (invalidEntries.length > 0) {
+        errors.push('dependsOn must contain only strings');
+      }
+
+      // Check for cycles (if we have existing agents)
+      if (dependsOn.length > 0) {
+        const projects = readProjects().projects || [];
+        const allAgentIds = projects.map(p => p.id);
+        
+        // Add the new agent ID temporarily for cycle detection
+        const tempId = `p${Date.now()}`;
+        const dependsOnMap = {};
+        projects.forEach(p => { dependsOnMap[p.id] = p.dependsOn || []; });
+        dependsOnMap[tempId] = dependsOn;
+
+        if (detectCycle(dependsOnMap, [...allAgentIds, tempId])) {
+          errors.push('Cycle detected in dependsOn');
+          // eslint-disable-next-line no-console
+          console.error(JSON.stringify({ level: 'ERROR', ts: new Date().toISOString(), event: 'validation.cycle', dependsOn }));
+        }
+      }
     }
   }
 
@@ -207,7 +240,88 @@ app.post('/api/agents', rateLimitMiddleware, validateSpawnRequest, async (req, r
 });
 
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok' });
+  const redisStatus = isRedisConnected() ? 'connected' : 'disconnected';
+  res.json({
+    status: 'ok',
+    redis: redisStatus,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Get queue statistics
+app.get('/api/queue', async (_req, res) => {
+  try {
+    const stats = await getQueueStats();
+    res.json(stats);
+  } catch (err) {
+    console.error('[api/queue] Error:', err.message);
+    res.status(500).json({ error: 'Failed to get queue stats' });
+  }
+});
+
+// Stop an agent (cancel pending/queued jobs)
+app.post('/api/agents/:id/stop', async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const store = readProjects();
+    const project = store.projects.find(p => p.id === id);
+    
+    if (!project) {
+      return res.status(404).json({ error: 'Agent not found' });
+    }
+    
+    // Get queue if available
+    const { getQueue } = require('./queue/index.js');
+    const queue = getQueue();
+    
+    let stoppedCount = 0;
+    
+    if (queue && isRedisConnected()) {
+      // Remove pending jobs for this agent's sub-agents
+      const jobs = await queue.getJobs(['waiting', 'delayed']);
+      for (const job of jobs) {
+        if (job.data.agentId === id) {
+          await job.remove();
+          stoppedCount++;
+          
+          // Update sub-agent status
+          if (project.subAgents) {
+            const subAgent = project.subAgents.find(sa => sa.queueJobId === job.id);
+            if (subAgent) {
+              subAgent.status = 'error';
+              subAgent.error = 'Stopped by user';
+              subAgent.completed_at = new Date().toISOString();
+            }
+          }
+        }
+      }
+    }
+    
+    // Update any running sub-agents to error
+    if (project.subAgents) {
+      project.subAgents.forEach(sa => {
+        if (sa.status === 'running' || sa.status === 'queued') {
+          sa.status = 'error';
+          sa.error = 'Stopped by user';
+          sa.completed_at = new Date().toISOString();
+          stoppedCount++;
+        }
+      });
+    }
+    
+    // Persist changes
+    const idx = store.projects.findIndex(p => p.id === id);
+    if (idx !== -1) {
+      store.projects[idx] = project;
+      writeProjects(store.projects);
+    }
+    
+    res.json({ status: 'stopped', agentId: id, stoppedCount });
+  } catch (err) {
+    console.error('[api/agents/stop] Error:', err.message);
+    res.status(500).json({ error: 'Failed to stop agent' });
+  }
 });
 
 // --- Start server ---
