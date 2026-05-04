@@ -5,10 +5,11 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { callLLM, sanitizeTask } from '../llm/openrouter.js';
 import { buildSystemPrompt, SKILL_PIPELINE } from '../llm/prompt.js';
+// Imports for ESM modules (queue folder uses named exports)
 import { getQueue, addJob, isRedisConnected } from '../queue/index.js';
 import { createWorker } from '../queue/workers.js';
 import { executeAgentSync } from '../queue/fallback.js';
-import { topologicalSort, generatePipelineDot } from '../queue/dag.js';
+import { topologicalSort, detectCycle, generatePipelineDot } from '../queue/dag.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

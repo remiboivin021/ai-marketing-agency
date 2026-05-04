@@ -8,7 +8,7 @@
  * Basic Auth middleware
  * Returns 401 with WWW-Authenticate header if auth fails
  */
-function basicAuth(req, res, next) {
+export function basicAuth(req, res, next) {
   // Load credentials from environment (dynamic read)
   const ADMIN_USER = process.env.ADMIN_USER || '';
   const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
@@ -48,5 +48,3 @@ function sendUnauthorized(res) {
   res.setHeader('WWW-Authenticate', 'Basic realm="AI Marketing Agency API"');
   return res.status(401).json({ error: 'Unauthorized' });
 }
-
-module.exports = { basicAuth };

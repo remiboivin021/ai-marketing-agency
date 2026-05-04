@@ -1,3 +1,6 @@
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+
 const Queue = require('bull');
 const IORedis = require('ioredis');
 const fs = require('fs');
@@ -14,7 +17,7 @@ let queue = null;
 /**
  * Initialize Redis connection using IORedis
  */
-function initRedis() {
+async function initRedis() {
   try {
     redisClient = new IORedis(REDIS_URL, {
       maxRetriesPerRequest: 3,
@@ -188,7 +191,7 @@ async function closeQueue() {
   }
 }
 
-module.exports = {
+export {
   initRedis,
   initQueue,
   getQueue,

@@ -1,7 +1,8 @@
-const fs = require('fs');
-const path = require('path');
-const agentsPath = path.join(__dirname, '../data/agents.json');
-const { callLLM } = require('../llm/openrouter');
+import fs from 'fs';
+import path from 'path';
+import { callLLM } from '../llm/openrouter.js';
+
+const agentsPath = path.join(path.dirname(new URL(import.meta.url).pathname), '../data/agents.json');
 
 /**
  * Fallback synchronous execution mode when Redis is unavailable
@@ -17,21 +18,27 @@ async function executeSubAgentSync(agentId, subAgent) {
   const startTime = Date.now();
   
   console.log(`[fallback] Executing sub-agent ${subAgent.id} synchronously (Redis unavailable)`);
-
+  
   try {
     // Update status to running
     subAgent.status = 'running';
     subAgent.logs = subAgent.logs || [];
     subAgent.logs.push(`[${new Date().toISOString()}] Sync execution started (fallback mode)`);
     await persistAgent(agentId);
-
+    
     // Call OpenRouter
-    const llmResult = await callLLM(subAgent.task, subAgent.model);
+    const llmResult = await callLLM({
+      systemPrompt: `You are a sub-agent executing task: ${subAgent.task}`,
+      userTask: subAgent.task,
+      agentId,
+      skill: subAgent.skill || 'agent_message'
+    });
+    
     const duration = Date.now() - startTime;
-
+    
     // Update with result
     subAgent.status = 'done';
-    subAgent.result = llmResult.result;
+    subAgent.result = llmResult.result || 'No result';
     subAgent.completed_at = new Date().toISOString();
     subAgent.cost = {
       tokens_in: llmResult.tokens_in || 0,
@@ -41,21 +48,21 @@ async function executeSubAgentSync(agentId, subAgent) {
     };
     subAgent.logs.push(`[${new Date().toISOString()}] Sync execution completed in ${duration}ms`);
     subAgent.logs.push(`[${new Date().toISOString()}] Tokens: ${subAgent.cost.tokens_in} in, ${subAgent.cost.tokens_out} out`);
-
+    
     await persistAgent(agentId);
-
+    
     console.log(`[fallback] Sub-agent ${subAgent.id} completed in ${duration}ms`);
     return { success: true, duration, cost: subAgent.cost };
   } catch (err) {
     const duration = Date.now() - startTime;
     console.error(`[fallback] Sub-agent ${subAgent.id} failed after ${duration}ms:`, err.message);
-
+    
     subAgent.status = 'error';
     subAgent.error = err.message;
     subAgent.completed_at = new Date().toISOString();
     subAgent.logs = subAgent.logs || [];
     subAgent.logs.push(`[${new Date().toISOString()}] Sync execution failed: ${err.message}`);
-
+    
     await persistAgent(agentId);
     throw err;
   }
@@ -87,9 +94,9 @@ async function executeAgentSync(agent) {
   if (!agent.subAgents || agent.subAgents.length === 0) {
     return;
   }
-
+  
   console.log(`[fallback] Executing agent ${agent.id} synchronously with ${agent.subAgents.length} sub-agents`);
-
+  
   // Simple sequential execution for fallback mode
   // In a real implementation, you'd want to respect dependsOn here too
   for (const subAgent of agent.subAgents) {
@@ -99,7 +106,7 @@ async function executeAgentSync(agent) {
   }
 }
 
-module.exports = {
+export {
   executeSubAgentSync,
   executeAgentSync
 };

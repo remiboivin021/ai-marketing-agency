@@ -9,7 +9,7 @@
  * @param {Array} agents - Array of agent objects with dependsOn field
  * @returns {Object} { sorted: Array, hasCycle: boolean, cyclePath: Array }
  */
-function topologicalSort(agents) {
+export function topologicalSort(agents) {
   // Build adjacency list and in-degree count
   const adjacency = new Map(); // agentId -> list of agents that depend on it
   const inDegree = new Map(); // agentId -> number of dependencies
@@ -18,97 +18,91 @@ function topologicalSort(agents) {
   // Initialize
   agents.forEach(agent => {
     agentMap.set(agent.id, agent);
-    inDegree.set(agent.id, (agent.dependsOn || []).length);
+    inDegree.set(agent.id, 0);
     adjacency.set(agent.id, []);
   });
 
-  // Build adjacency list: if A dependsOn B, then B -> A
+  // Build graph
   agents.forEach(agent => {
-    if (agent.dependsOn && Array.isArray(agent.dependsOn)) {
-      agent.dependsOn.forEach(depId => {
-        if (agentMap.has(depId)) {
-          adjacency.get(depId).push(agent.id);
-        }
-      });
+    const deps = agent.dependsOn || [];
+    deps.forEach(depId => {
+      if (adjacency.has(depId)) {
+        adjacency.get(depId).push(agent.id);
+        inDegree.set(agent.id, inDegree.get(agent.id) + 1);
+      }
+    });
+  });
+
+  // Find nodes with no dependencies (in-degree = 0)
+  const queue = [];
+  inDegree.forEach((degree, agentId) => {
+    if (degree === 0) {
+      queue.push(agentId);
     }
   });
 
-  // Kahn's algorithm
-  const queue = [];
   const sorted = [];
   const visited = new Set();
-
-  // Find nodes with no dependencies (in-degree 0)
-  agents.forEach(agent => {
-    if (inDegree.get(agent.id) === 0) {
-      queue.push(agent.id);
-    }
-  });
 
   while (queue.length > 0) {
     const current = queue.shift();
     if (visited.has(current)) continue;
     visited.add(current);
-    sorted.push(agentMap.get(current));
 
-    // For each agent that depends on current, reduce in-degree
-    adjacency.get(current).forEach(nextId => {
-      inDegree.set(nextId, inDegree.get(nextId) - 1);
-      if (inDegree.get(nextId) === 0) {
-        queue.push(nextId);
+    const agent = agentMap.get(current);
+    if (agent) {
+      sorted.push(agent);
+    }
+
+    // Reduce in-degree of neighbors
+    const neighbors = adjacency.get(current) || [];
+    neighbors.forEach(neighborId => {
+      inDegree.set(neighborId, inDegree.get(neighborId) - 1);
+      if (inDegree.get(neighborId) === 0) {
+        queue.push(neighborId);
       }
     });
   }
 
-  // Check for cycle: if not all agents are sorted, there's a cycle
+  // Check for cycles
   const hasCycle = sorted.length !== agents.length;
-  let cyclePath = [];
-  
-  if (hasCycle) {
-    cyclePath = findCycle(agents);
-  }
+  const cyclePath = hasCycle ? findCycle(agents) : [];
 
   return { sorted, hasCycle, cyclePath };
 }
 
 /**
  * Detect if there's a cycle in the dependency graph
- * Uses DFS-based cycle detection
- * @param {Array} dependsOnMap - Object mapping agentId to dependsOn array
- * @param {Array} allAgentIds - All agent IDs to check
- * @returns {boolean}
+ * @param {Object} dependsOnMap - Map of agentId -> dependsOn array
+ * @param {Array} allAgentIds - List of all agent IDs
+ * @returns {boolean} True if cycle detected
  */
-function detectCycle(dependsOnMap, allAgentIds) {
+export function detectCycle(dependsOnMap, allAgentIds) {
   const visited = new Set();
-  const recursionStack = new Set();
+  const recStack = new Set();
 
-  function hasCycleDFS(node, path = []) {
-    if (recursionStack.has(node)) {
-      return true; // Cycle detected
-    }
-    if (visited.has(node)) {
-      return false;
-    }
-
+  function hasCycleDFS(node, path) {
     visited.add(node);
-    recursionStack.add(node);
-    path.push(node);
+    recStack.add(node);
 
-    const dependencies = dependsOnMap[node] || [];
-    for (const dep of dependencies) {
-      if (hasCycleDFS(dep, path)) {
+    const deps = dependsOnMap[node] || [];
+    for (const dep of deps) {
+      if (!visited.has(dep)) {
+        if (hasCycleDFS(dep, [...path, dep])) {
+          return true;
+        }
+      } else if (recStack.has(dep)) {
         return true;
       }
     }
 
-    recursionStack.delete(node);
-    path.pop();
+    recStack.delete(node);
     return false;
   }
 
   for (const agentId of allAgentIds) {
     if (!visited.has(agentId)) {
-      if (hasCycleDFS(agentId)) {
+      if (hasCycleDFS(agentId, [agentId])) {
         return true;
       }
     }
@@ -118,81 +112,87 @@ function detectCycle(dependsOnMap, allAgentIds) {
 }
 
 /**
- * Find the actual cycle path for error reporting
+ * Find the cycle path in the dependency graph
  * @param {Array} agents - Array of agent objects
- * @returns {Array} Cycle path
+ * @returns {Array} The cycle path (empty if no cycle)
  */
 function findCycle(agents) {
   const dependsOnMap = {};
-  const agentIds = [];
-  
-  agents.forEach(agent => {
-    dependsOnMap[agent.id] = agent.dependsOn || [];
-    agentIds.push(agent.id);
-  });
+  agents.forEach(p => { dependsOnMap[p.id] = p.dependsOn || []; });
 
   const visited = new Set();
-  const recursionStack = new Set();
-  let cyclePath = [];
-  let foundCycle = false;
+  const recStack = new Set();
+  const path = [];
 
-  function dfs(node, path) {
-    if (foundCycle) return;
-    
-    if (recursionStack.has(node)) {
-      // Found cycle - extract the cycle path
-      const cycleStart = path.indexOf(node);
-      cyclePath = path.slice(cycleStart).concat([node]);
-      foundCycle = true;
-      return;
-    }
-
-    if (visited.has(node)) return;
-
+  function dfs(node) {
     visited.add(node);
-    recursionStack.add(node);
+    recStack.add(node);
     path.push(node);
 
     const deps = dependsOnMap[node] || [];
     for (const dep of deps) {
-      dfs(dep, path);
-      if (foundCycle) return;
+      if (!visited.has(dep)) {
+        const result = dfs(dep);
+        if (result) return result;
+      } else if (recStack.has(dep)) {
+        // Found cycle - return the cycle path
+        const cycleStart = path.indexOf(dep);
+        return path.slice(cycleStart);
+      }
     }
 
-    recursionStack.delete(node);
     path.pop();
+    recStack.delete(node);
+    return null;
   }
 
-  for (const agentId of agentIds) {
-    if (!visited.has(agentId)) {
-      dfs(agentId, []);
-      if (foundCycle) break;
+  for (const agent of agents) {
+    if (!visited.has(agent.id)) {
+      const cycle = dfs(agent.id);
+      if (cycle) return cycle;
     }
   }
 
-  return cyclePath;
+  return [];
 }
 
 /**
- * Generate DOT representation of the pipeline based on dependsOn relationships
- * @param {Array} dependsOnMap - Object mapping agentId to dependsOn array
- * @param {string} pipelineName - Name for the digraph
- * @returns {string} DOT format string
+ * Generate DOT representation of the pipeline for visualization
+ * @param {Array} agents - Array of agent objects with dependsOn
+ * @returns {string} DOT language string
  */
-function generatePipelineDot(agents) {
+export function generatePipelineDot(agents) {
   const lines = ['digraph Pipeline {'];
-  
+  lines.push('  node [shape=box, style=filled, fillcolor="#e0f2fe"];');
+  lines.push('  edge [color="#3b82f6", penwidth=2];');
+  lines.push('');
+
+  // Add nodes
   agents.forEach(agent => {
+    const nodeName = agent.skill || agent.id;
+    const label = `${nodeName}\\n(${agent.status || 'idle'})`;
+    const color = agent.status === 'done' ? '#bbf7d0' : 
+                 agent.status === 'running' ? '#fef08a' :
+                 agent.status === 'error' ? '#fecaca' : '#e0f2fe';
+    lines.push(`  ${nodeName} [label="${label}", fillcolor="${color}"];`);
+  });
+
+  lines.push('');
+
+  // Add edges based on dependsOn
+  agents.forEach(agent => {
+    const fromNode = agent.skill || agent.id;
     const deps = agent.dependsOn || [];
     deps.forEach(depId => {
-      // Find the skill name for better labels
       const depAgent = agents.find(a => a.id === depId);
-      const currentAgent = agent;
-      const from = depAgent ? depAgent.skill || depId : depId;
-      const to = currentAgent.skill || agent.id;
-      lines.push(`  ${from} -> ${to};`);
+      if (depAgent) {
+        const toNode = depAgent.skill || depAgent.id;
+        lines.push(`  ${toNode} -> ${fromNode};`);
+      }
     });
   });
+
+  lines.push('');
 
   // Add nodes without dependencies
   agents.forEach(agent => {
@@ -206,10 +206,3 @@ function generatePipelineDot(agents) {
   lines.push('}');
   return lines.join('\n');
 }
-
-module.exports = {
-  topologicalSort,
-  detectCycle,
-  findCycle,
-  generatePipelineDot
-};
