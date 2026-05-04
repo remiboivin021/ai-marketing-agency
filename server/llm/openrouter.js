@@ -4,7 +4,7 @@
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 const BASE_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const DEFAULT_MODEL = 'google/gemini-2.0-flash-001:free';
+const DEFAULT_MODEL = 'openrouter/free';
 const TIMEOUT_MS = 60_000;
 
 // --- Startup validation ---
