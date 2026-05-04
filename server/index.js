@@ -9,6 +9,7 @@ import { readProjects, spawnProject } from './data/agents.js';
 import { callLLM, sanitizeTask } from './llm/openrouter.js';
 import { getQueueStats, isRedisConnected } from './queue/index.js';
 import { topologicalSort, detectCycle } from './queue/dag.js';
+import { basicAuth } from './middleware/auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -105,6 +106,12 @@ function validateSpawnRequest(req, res, next) {
 
 // --- App setup ---
 const app = express();
+
+// Trust proxy (nginx reverse proxy)
+app.set('trust proxy', true);
+
+// Apply Basic Auth to all /api/* routes
+app.use('/api', basicAuth);
 
 // Charger les agents depuis les fichiers JSON
 function loadAgentsFromJSON() {
