@@ -40,9 +40,22 @@
 
 ```
 GET /api/gateway     → GatewaySignals data
-GET /api/agents    → AgentNetworkGraph data
+GET /api/agents    → AgentNetworkGraph data (includes dependsOn, pipelineDot)
 GET /api/projects  → Projects list
+POST /api/agents   → Spawn agent (with optional dependsOn, task)
+GET /api/queue      → Queue statistics (jobs waiting, active, completed, failed)
+POST /api/agents/:id/stop → Stop agent (cancel jobs, mark as error)
+GET /health         → Health check (includes redis: connected/disconnected)
 ```
+
+## New Features (orchestration-execution)
+
+- **Task Queue**: Bull + Redis for agent task queue with concurrency
+- **Parallel Execution**: Agents without dependencies run in parallel (max 5 concurrent)
+- **Dependency Management**: Agents can declare `dependsOn` for DAG-based execution
+- **Cost Tracking**: OpenRouter token usage (in/out) and execution time tracked per sub-agent
+- **Fallback Mode**: Synchronous execution if Redis unavailable
+- **Visualization**: Dependency arrows displayed on Canvas in AgentNetworkGraph
 
 ## Public Contracts
 
