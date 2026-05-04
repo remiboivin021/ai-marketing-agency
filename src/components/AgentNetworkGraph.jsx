@@ -93,28 +93,7 @@ function AgentNetworkGraph() {
   const [loading, setLoading] = useState(true);
   const [showSpawn, setShowSpawn] = useState(false);
 
-  const THEME = { done: '#10b981', working: '#f59e0b', alert: '#ef4444', idle: '#475569' };
-
-  useEffect(() => {
-    fetch('/api/agents')
-      .then(res => res.ok ? res.json() : Promise.reject())
-      .then(data => { setProjects(data); setLoading(false); })
-      .catch(() => setLoading(false));
-    const poll = setInterval(() => fetch('/api/agents').then(r => r.ok ? r.json() : Promise.reject()).then(d => setProjects(d)), 5000);
-    return () => clearInterval(poll);
-  }, []);
-
-  useEffect(() => {
-    const updateSize = () => {
-      if (containerRef.current) {
-        const { clientWidth, clientHeight } = containerRef.current;
-        if (clientWidth > 0) setDimensions({ width: clientWidth, height: clientHeight });
-      }
-    };
-    updateSize();
-    window.addEventListener('resize', updateSize);
-    return () => window.removeEventListener('resize', updateSize);
-  }, []);
+const THEME = { done: '#10b981', working: '#f59e0b', alert: '#ef4444', idle: '#475569' };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -129,6 +108,57 @@ function AgentNetworkGraph() {
     const draw = () => {
       ctx.clearRect(0, 0, width, height);
       const time = Date.now() * 0.002;
+
+      // Draw dependency arrows first (behind agents)
+      projects.forEach(p => {
+        const px = p.x * width, py = p.y * height;
+        const dependsOn = p.dependsOn || [];
+        
+        dependsOn.forEach(depId => {
+          const depAgent = projects.find(a => a.id === depId);
+          if (!depAgent) return;
+          
+          const dx = depAgent.x * width, dy = depAgent.y * height;
+          
+          // Draw arrow line
+          ctx.beginPath();
+          ctx.moveTo(dx, dy);
+          ctx.lineTo(px, py);
+          ctx.strokeStyle = '#06b6d444';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([]);
+          ctx.stroke();
+
+          // Draw arrowhead
+          const angle = Math.atan2(py - dy, px - dx);
+          const arrowLength = 10;
+          const arrowAngle = 0.4;
+          
+          ctx.beginPath();
+          ctx.moveTo(px, py);
+          ctx.lineTo(
+            px - arrowLength * Math.cos(angle - arrowAngle),
+            py - arrowLength * Math.sin(angle - arrowAngle)
+          );
+          ctx.lineTo(
+            px - arrowLength * Math.cos(angle + arrowAngle),
+            py - arrowLength * Math.sin(angle + arrowAngle)
+          );
+          ctx.closePath();
+          ctx.fillStyle = '#06b6d4';
+          ctx.fill();
+
+          // Draw "depends on" label
+          const midX = (dx + px) / 2;
+          const midY = (dy + py) / 2;
+          ctx.font = '8px monospace';
+          ctx.fillStyle = '#06b6d466';
+          ctx.textAlign = 'center';
+          ctx.fillText('depends on', midX, midY - 5);
+        });
+      });
+
+      // Draw agents
       projects.forEach(p => {
         const px = p.x * width, py = p.y * height;
         const isSel = selectedProject?.id === p.id;

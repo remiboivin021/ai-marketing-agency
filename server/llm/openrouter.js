@@ -29,7 +29,7 @@ if (USE_MOCK) {
  * @param {string} [opts.model] - model identifier
  * @param {string} [opts.agentId] - agent project id for logging
  * @param {string} [opts.skill] - current skill name for logging
- * @returns {Promise<{result: string}>}
+ * @returns {Promise<{result: string, tokens_in: number, tokens_out: number, time_ms: number}>}
  */
 export async function callLLM({ systemPrompt, userTask, model = DEFAULT_MODEL, agentId, skill }) {
   if (USE_MOCK) {
@@ -42,7 +42,12 @@ export async function callLLM({ systemPrompt, userTask, model = DEFAULT_MODEL, a
       "C'est une question pertinente. Voici mon analyse..."
     ];
     const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-    return { result: `[Mode local] ${randomResponse}`, duration_ms: 500 };
+    return {
+      result: `[Mode local] ${randomResponse}`,
+      tokens_in: 50,
+      tokens_out: 150,
+      time_ms: 500
+    };
   }
 
   const startMs = Date.now();
@@ -89,6 +94,11 @@ export async function callLLM({ systemPrompt, userTask, model = DEFAULT_MODEL, a
       const data = await response.json();
       const result = data.choices?.[0]?.message?.content ?? '';
 
+      // Extract token usage from OpenRouter response
+      const usage = data.usage || {};
+      const tokens_in = usage.prompt_tokens || 0;
+      const tokens_out = usage.completion_tokens || 0;
+
       if (!result) {
         // eslint-disable-next-line no-console
         console.error(JSON.stringify({ level: 'WARN', ts: new Date().toISOString(), event: 'llm.call.empty', agentId, skill }));
@@ -96,9 +106,24 @@ export async function callLLM({ systemPrompt, userTask, model = DEFAULT_MODEL, a
 
       const durationMs = Date.now() - startMs;
       // eslint-disable-next-line no-console
-      console.error(JSON.stringify({ level: 'INFO', ts: new Date().toISOString(), event: 'llm.call.completed', agentId, skill, duration_ms: durationMs }));
+      console.error(JSON.stringify({
+        level: 'INFO',
+        ts: new Date().toISOString(),
+        event: 'llm.call.completed',
+        agentId,
+        skill,
+        duration_ms: durationMs,
+        tokens_in,
+        tokens_out,
+        model
+      }));
 
-      return { result };
+      return {
+        result,
+        tokens_in,
+        tokens_out,
+        time_ms: durationMs
+      };
     } catch (err) {
       const isTimeout = err.name === 'AbortError' ||
         (err.type === 'request-abort') ||
